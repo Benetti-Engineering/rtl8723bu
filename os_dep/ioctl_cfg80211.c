@@ -4663,7 +4663,7 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	enum nl80211_channel_type channel_type,
 #endif
 	unsigned int duration,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
 	u64 cookie,
 	const u8 *link_addr
 #else
@@ -4671,7 +4671,7 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 #endif
 )
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
 	u64 ro_cookie = cookie;
 #else
 	u64 ro_cookie = *cookie;
@@ -5103,7 +5103,7 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 #else // kernel >= 3.14
 	struct cfg80211_mgmt_tx_params *params,
 #endif // kernel >= 3.14
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
 	u64 cookie
 #else
 	u64 *cookie
@@ -5122,7 +5122,7 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 	bool no_cck = params->no_cck;
 	bool dont_wait_for_ack = params->dont_wait_for_ack;
 #endif // kernel >= 3.14
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
 	u64 tx_cookie = cookie;
 #else
 	u64 tx_cookie = (unsigned long)buf;
@@ -5148,7 +5148,7 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 	pwdev_priv = adapter_wdev_data(padapter);
 
 	/* cookie generation */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 2, 0)
 	*cookie = tx_cookie;
 #endif
 

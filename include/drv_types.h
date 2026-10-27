@@ -979,4 +979,8 @@ __inline static u8 *myid(struct eeprom_priv *peepriv)
 #include <rtw_btcoex.h>
 #endif // CONFIG_BT_COEXIST
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
+#define strncpy(dst, src, n) strscpy(dst, src, n)
+#endif
+
 #endif //__DRV_TYPES_H__

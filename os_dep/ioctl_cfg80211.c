@@ -1428,7 +1428,12 @@ exit:
 	return ret;
 }
 
-static int cfg80211_rtw_add_key(struct wiphy *wiphy, struct net_device *ndev,
+static int cfg80211_rtw_add_key(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+				struct wireless_dev *wdev,
+#else
+				struct net_device *ndev,
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0)) || defined(COMPAT_KERNEL_RELEASE)
 				int link_id, u8 key_index, bool pairwise, const u8 *mac_addr,
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)) || defined(COMPAT_KERNEL_RELEASE)
@@ -1438,6 +1443,9 @@ static int cfg80211_rtw_add_key(struct wiphy *wiphy, struct net_device *ndev,
 #endif	// (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 				struct key_params *params)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	char *alg_name;
 	u32 param_len;
 	struct ieee_param *param = NULL;
@@ -1567,7 +1575,12 @@ addkey_end:
 
 }
 
-static int cfg80211_rtw_get_key(struct wiphy *wiphy, struct net_device *ndev,
+static int cfg80211_rtw_get_key(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+				struct wireless_dev *wdev,
+#else
+				struct net_device *ndev,
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0)) || defined(COMPAT_KERNEL_RELEASE)
 				int link_id, u8 key_index, bool pairwise, const u8 *mac_addr,
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)) || defined(COMPAT_KERNEL_RELEASE)
@@ -1583,7 +1596,12 @@ static int cfg80211_rtw_get_key(struct wiphy *wiphy, struct net_device *ndev,
 	return 0;
 }
 
-static int cfg80211_rtw_del_key(struct wiphy *wiphy, struct net_device *ndev,
+static int cfg80211_rtw_del_key(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+				struct wireless_dev *wdev,
+#else
+				struct net_device *ndev,
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0)) || defined(COMPAT_KERNEL_RELEASE)
 				int link_id, u8 key_index, bool pairwise, const u8 *mac_addr)
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)) || defined(COMPAT_KERNEL_RELEASE)
@@ -1592,6 +1610,9 @@ static int cfg80211_rtw_del_key(struct wiphy *wiphy, struct net_device *ndev,
 				u8 key_index, const u8 *mac_addr)
 #endif	// (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(ndev);
 	struct security_priv *psecuritypriv = &padapter->securitypriv;
 
@@ -1649,7 +1670,11 @@ static int cfg80211_rtw_set_default_key(struct wiphy *wiphy,
 }
 
 static int cfg80211_rtw_get_station(struct wiphy *wiphy,
-				    struct net_device *ndev,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+				struct wireless_dev *wdev,
+#else
+				struct net_device *ndev,
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0))
 				    u8 *mac,
 #else
@@ -1657,6 +1682,9 @@ static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 #endif
 				    struct station_info *sinfo)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	int ret = 0;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(ndev);
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
@@ -3332,7 +3360,11 @@ void rtw_cfg80211_indicate_sta_assoc(_adapter *padapter, u8 *pmgmt_frame, uint f
 		sinfo.filled = STATION_INFO_ASSOC_REQ_IES;
 		sinfo.assoc_req_ies = pmgmt_frame + WLAN_HDR_A3_LEN + ie_offset;
 		sinfo.assoc_req_ies_len = frame_len - WLAN_HDR_A3_LEN - ie_offset;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+		cfg80211_new_sta(ndev->ieee80211_ptr, GetAddr2Ptr(pmgmt_frame), &sinfo, GFP_ATOMIC);
+#else
 		cfg80211_new_sta(ndev, GetAddr2Ptr(pmgmt_frame), &sinfo, GFP_ATOMIC);
+#endif
 	}
 #else /* defined(RTW_USE_CFG80211_STA_EVENT) */
 	channel = pmlmeext->cur_channel;
@@ -3378,7 +3410,11 @@ void rtw_cfg80211_indicate_sta_disassoc(_adapter *padapter, unsigned char *da, u
 	DBG_871X(FUNC_ADPT_FMT"\n", FUNC_ADPT_ARG(padapter));
 
 #if defined(RTW_USE_CFG80211_STA_EVENT) || defined(COMPAT_KERNEL_RELEASE)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	cfg80211_del_sta(ndev->ieee80211_ptr, da, GFP_ATOMIC);
+#else
 	cfg80211_del_sta(ndev, da, GFP_ATOMIC);
+#endif
 #else /* defined(RTW_USE_CFG80211_STA_EVENT) */
 	channel = pmlmeext->cur_channel;
 	if (channel <= RTW_CH_MAX_2G_CHANNEL)
@@ -4018,30 +4054,47 @@ static int cfg80211_rtw_stop_ap(struct wiphy *wiphy, struct net_device *ndev,
 
 #endif //(LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 15, 0))
-static int	cfg80211_rtw_add_station(struct wiphy *wiphy, struct net_device *ndev,
-			       u8 *mac, struct station_parameters *params)
+
+static int	cfg80211_rtw_add_station(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+					struct wireless_dev *wdev,
 #else
-static int	cfg80211_rtw_add_station(struct wiphy *wiphy, struct net_device *ndev,
-			       const u8 *mac, struct station_parameters *params)
+					struct net_device *ndev,
 #endif
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 15, 0))
+					 u8 *mac,
+#else
+					 const u8 *mac,
+#endif
+					 struct station_parameters *params)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	DBG_871X(FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
 
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
-static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-				    u8 *mac)
-#elif (LINUX_VERSION_CODE < KERNEL_VERSION(3,19, 0))
-static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-				    const u8 *mac)
+static int cfg80211_rtw_del_station(
+	struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct wireless_dev *wdev,
 #else
-static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-				    struct station_del_parameters *params)
+	struct net_device *ndev,
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
+	u8 *mac
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+	const u8 *mac
+#else
+	struct station_del_parameters *params
+#endif
+)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	int ret=0;
 	_irqL irqL;
 	_list	*phead, *plist;
@@ -4133,7 +4186,12 @@ static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 
 }
 
-static int	cfg80211_rtw_change_station(struct wiphy *wiphy, struct net_device *ndev,
+static int	cfg80211_rtw_change_station(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+			struct wireless_dev *wdev,
+#else
+			struct net_device *ndev,
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
 			u8 *mac,
 #else
@@ -4141,6 +4199,9 @@ static int	cfg80211_rtw_change_station(struct wiphy *wiphy, struct net_device *n
 #endif
 			struct station_parameters *params)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	DBG_871X(FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
 
 	return 0;
@@ -4166,16 +4227,24 @@ static struct sta_info *rtw_sta_info_get_by_idx(const int idx, struct sta_priv *
 	return psta;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)) || \
-    (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
-static int	cfg80211_rtw_dump_station(struct wiphy *wiphy, struct net_device *ndev,
-			       int idx, u8 *mac, struct station_info *sinfo)
+static int cfg80211_rtw_dump_station(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+				     struct wireless_dev *wdev,
 #else
-static int	cfg80211_rtw_dump_station(struct wiphy *wiphy, struct net_device *ndev,
-			       int idx, const u8 *mac, struct station_info *sinfo)
+				     struct net_device *ndev,
 #endif
+				     int idx,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0) || \
+    LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+				     u8 *mac,
+#else
+				     const u8 *mac,
+#endif
+				     struct station_info *sinfo)
 {
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	struct net_device *ndev = wdev->netdev;
+#endif
 	int ret = 0;
 	_irqL irqL;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(ndev);
@@ -4593,8 +4662,20 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
 	enum nl80211_channel_type channel_type,
 #endif
-	unsigned int duration, u64 *cookie)
+	unsigned int duration,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	u64 cookie,
+	const u8 *link_addr
+#else
+	u64 *cookie
+#endif
+)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	u64 ro_cookie = cookie;
+#else
+	u64 ro_cookie = *cookie;
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 	struct net_device *ndev = wdev_to_ndev(wdev);
 #endif
@@ -4644,7 +4725,7 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
 	pcfg80211_wdinfo->remain_on_ch_type= channel_type;
 	#endif
-	pcfg80211_wdinfo->remain_on_ch_cookie= *cookie;
+	pcfg80211_wdinfo->remain_on_ch_cookie= ro_cookie;
 
 	rtw_scan_abort(padapter);
 #ifdef CONFIG_CONCURRENT_MODE
@@ -4769,7 +4850,7 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	}
 #endif
 
-	rtw_cfg80211_ready_on_channel(padapter, *cookie, channel, channel_type, duration, GFP_KERNEL);
+	rtw_cfg80211_ready_on_channel(padapter, cookie, channel, channel_type, duration, GFP_KERNEL);
 
 exit:
 	if (err) {
@@ -5022,7 +5103,12 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 #else // kernel >= 3.14
 	struct cfg80211_mgmt_tx_params *params,
 #endif // kernel >= 3.14
-	u64 *cookie)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	u64 cookie
+#else
+	u64 *cookie
+#endif
+)
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 	struct net_device *ndev = wdev_to_ndev(wdev);
@@ -5036,6 +5122,11 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 	bool no_cck = params->no_cck;
 	bool dont_wait_for_ack = params->dont_wait_for_ack;
 #endif // kernel >= 3.14
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+	u64 tx_cookie = cookie;
+#else
+	u64 tx_cookie = (unsigned long)buf;
+#endif
 	int ret = 0;
 	int tx_ret;
 	u32 dump_limit = RTW_MAX_MGMT_TX_CNT;
@@ -5057,7 +5148,9 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 	pwdev_priv = adapter_wdev_data(padapter);
 
 	/* cookie generation */
-	*cookie = (unsigned long) buf;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 0)
+	*cookie = tx_cookie;
+#endif
 
 #ifdef CONFIG_DEBUG_CFG80211
 	DBG_871X(FUNC_ADPT_FMT" len=%zu, ch=%d"
@@ -5080,9 +5173,9 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy,
 
 	/* indicate ack before issue frame to avoid racing with rsp frame */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)) || defined(COMPAT_KERNEL_RELEASE)
-	rtw_cfg80211_mgmt_tx_status(padapter, *cookie, buf, len, ack, GFP_KERNEL);
+	rtw_cfg80211_mgmt_tx_status(padapter, tx_cookie, buf, len, ack, GFP_KERNEL);
 #elif  (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,34) && LINUX_VERSION_CODE<=KERNEL_VERSION(2,6,35))
-	cfg80211_action_tx_status(ndev, *cookie, buf, len, ack, GFP_KERNEL);
+	cfg80211_action_tx_status(ndev, tx_cookie, buf, len, ack, GFP_KERNEL);
 #endif
 
 	if (rtw_action_frame_parse(buf, len, &category, &action) == _FALSE) {
